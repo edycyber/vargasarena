@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#080b12" />
+  <title>Vargas Arena — Beyond the Game</title>
+  <style>
+    :root {
+      --bg: #080b12;
+      --panel: rgba(18, 24, 38, .76);
+      --text: #f4f7ff;
+      --muted: #9aa6bd;
+      --line: rgba(255,255,255,.11);
+      --cyan: #61f4e6;
+      --purple: #9d7bff;
+      --pink: #ff5f9e;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; color: var(--text); background: var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: ""; position: fixed; inset: 0; pointer-events: none; z-index: -1;
+      background: radial-gradient(ellipse at 12% 8%, rgba(97,244,230,.10), transparent 32%),
+                  radial-gradient(ellipse at 90% 30%, rgba(157,123,255,.13), transparent 34%),
+                  linear-gradient(180deg, #080b12, #0b0e18 70%, #080b12);
+    }
+    a { color: inherit; text-decoration: none; }
+    .wrap { width: min(1160px, calc(100% - 44px)); margin: auto; }
+    header {
+      height: 82px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: -.04em; font-size: 1.1rem; }
+    .brand-mark {
+      width: 36px; height: 36px; display: grid; place-items: center; border-radius: 12px;
+      background: linear-gradient(135deg, var(--cyan), var(--purple)); color: #081018; font-weight: 950;
+      box-shadow: 0 0 30px rgba(97,244,230,.18);
+    }
+    nav { display: flex; align-items: center; gap: 30px; color: var(--muted); font-size: .9rem; }
+    nav a:hover { color: var(--text); }
+    .nav-cta, .button {
+      border: 1px solid rgba(97,244,230,.4); background: rgba(97,244,230,.08); color: var(--cyan);
+      border-radius: 999px; padding: 12px 18px; font-weight: 750; transition: .25s ease; cursor: pointer;
+    }
+    .nav-cta:hover, .button:hover { transform: translateY(-2px); background: rgba(97,244,230,.16); box-shadow: 0 10px 35px rgba(97,244,230,.12); }
+    .hero { min-height: 690px; display: grid; grid-template-columns: 1.02fr .98fr; align-items: center; gap: 42px; padding: 76px 0 88px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 9px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; color: #c7d4e8; font-size: .76rem; letter-spacing: .13em; text-transform: uppercase; }
+    .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 13px var(--cyan); }
+    h1 { font-size: clamp(3.4rem, 7vw, 6.8rem); line-height: .94; letter-spacing: -.075em; margin: 24px 0; max-width: 690px; }
+    h1 span { background: linear-gradient(100deg, #f8fbff 15%, var(--cyan) 58%, #b39cff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .lead { max-width: 520px; color: var(--muted); font-size: 1.08rem; line-height: 1.8; }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 32px; }
+    .primary {
+      display: inline-flex; align-items: center; gap: 12px; padding: 15px 21px; border-radius: 999px;
+      color: #071014; font-weight: 850; background: linear-gradient(105deg, var(--cyan), #a8fff5);
+      box-shadow: 0 10px 38px rgba(97,244,230,.2); transition: .25s ease;
+    }
+    .primary:hover { transform: translateY(-3px); box-shadow: 0 16px 44px rgba(97,244,230,.3); }
+    .secondary { color: #d6dced; padding: 14px 10px; font-weight: 700; }
+    .secondary:hover { color: var(--cyan); }
+    .stats { display: flex; gap: 34px; margin-top: 46px; }
+    .stat strong { display: block; font-size: 1.5rem; letter-spacing: -.04em; }
+    .stat span { color: var(--muted); font-size: .78rem; display: block; margin-top: 5px; }
+    .arena-scene { position: relative; min-height: 460px; display: grid; place-items: center; isolation: isolate; }
+    .orb { position: absolute; width: 340px; height: 340px; border-radius: 50%; background: rgba(97,244,230,.10); filter: blur(65px); z-index: -1; }
+    .stadium {
+      position: relative; width: min(100%, 510px); aspect-ratio: 1 / .92; border: 1px solid rgba(255,255,255,.15);
+      border-radius: 48% 48% 34% 34%; overflow: hidden; transform: perspective(900px) rotateX(8deg);
+      background: linear-gradient(150deg, rgba(32,47,69,.78), rgba(8,12,22,.96) 62%);
+      box-shadow: inset 0 0 65px rgba(97,244,230,.08), 0 35px 100px rgba(0,0,0,.4);
+    }
+    .stadium::before {
+      content: ""; position: absolute; left: 9%; right: 9%; top: 11%; height: 65%; border-radius: 50%;
+      border: 2px solid rgba(97,244,230,.7); box-shadow: 0 0 25px rgba(97,244,230,.3), inset 0 0 25px rgba(97,244,230,.1);
+      transform: rotateX(58deg) rotateZ(-8deg);
+    }
+    .stadium::after {
+      content: ""; position: absolute; left: 17%; right: 17%; top: 22%; height: 48%; border-radius: 50%;
+      border: 1px solid rgba(157,123,255,.8); transform: rotateX(58deg) rotateZ(-8deg);
+      box-shadow: 0 0 25px rgba(157,123,255,.25);
+    }
+    .field {
+      position: absolute; left: 18%; right: 18%; top: 28%; height: 39%; border-radius: 50%;
+      background: repeating-linear-gradient(90deg, rgba(97,244,230,.08) 0 12%, transparent 12% 24%),
+                  linear-gradient(135deg, #123b42, #0b1b2c);
+      border: 1px solid rgba(97,244,230,.55); transform: rotateX(58deg) rotateZ(-8deg);
+      box-shadow: 0 0 28px rgba(97,244,230,.14);
+    }
+    .field::before { content: ""; position: absolute; inset: 18% 25%; border: 1px solid rgba(207,255,250,.65); border-radius: 50%; }
+    .field::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; border-left: 1px solid rgba(207,255,250,.45); }
+    .beam { position: absolute; width: 2px; height: 80%; top: 2%; background: linear-gradient(transparent, var(--cyan), transparent); opacity: .75; filter: drop-shadow(0 0 8px var(--cyan)); }
+    .beam.one { left: 24%; transform: rotate(21deg); } .beam.two { right: 24%; transform: rotate(-21deg); background: linear-gradient(transparent, var(--purple), transparent); }
+    .float-card {
+      position: absolute; display: flex; align-items: center; gap: 12px; padding: 13px 15px; border-radius: 16px;
+      background: rgba(12,17,29,.82); border: 1px solid rgba(255,255,255,.13); backdrop-filter: blur(14px);
+      box-shadow: 0 18px 50px rgba(0,0,0,.3); animation: float 5s ease-in-out infinite;
+    }
+    .float-card small { display: block; color: var(--muted); font-size: .68rem; margin-bottom: 4px; }
+    .float-card strong { font-size: .9rem; }
+    .float-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px; background: rgba(97,244,230,.12); color: var(--cyan); }
+    .card-top { top: 11%; right: -2%; } .card-bottom { bottom: 12%; left: -2%; animation-delay: -2s; }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+    section { padding: 70px 0; }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 30px; }
+    .kicker { color: var(--cyan); text-transform: uppercase; letter-spacing: .15em; font-size: .72rem; font-weight: 800; }
+    h2 { font-size: clamp(2rem, 4vw, 3.2rem); letter-spacing: -.06em; margin: 10px 0 0; }
+    .section-head p { color: var(--muted); max-width: 390px; line-height: 1.7; margin: 0; }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .feature {
+      padding: 26px; border-radius: 22px; border: 1px solid var(--line);
+      background: linear-gradient(145deg, rgba(255,255,255,.045), rgba(255,255,255,.015)); transition: .25s ease;
+    }
+    .feature:hover { border-color: rgba(97,244,230,.35); transform: translateY(-5px); background: rgba(97,244,230,.04); }
+    .feature-icon { font-size: 1.4rem; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; background: rgba(157,123,255,.12); margin-bottom: 22px; }
+    .feature h3 { margin: 0 0 10px; font-size: 1.08rem; }
+    .feature p { margin: 0; color: var(--muted); line-height: 1.75; font-size: .92rem; }
+    .cta-panel {
+      display: flex; align-items: center; justify-content: space-between; gap: 26px; padding: clamp(28px, 5vw, 52px);
+      border: 1px solid rgba(97,244,230,.23); border-radius: 28px;
+      background: radial-gradient(ellipse at 100% 0%, rgba(157,123,255,.16), transparent 45%), linear-gradient(120deg, rgba(97,244,230,.08), rgba(255,255,255,.025));
+    }
+    .cta-panel p { color: var(--muted); max-width: 560px; line-height: 1.7; margin-bottom: 0; }
+    footer { padding: 28px 0 36px; margin-top: 40px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 18px; color: #7e8aa2; font-size: .8rem; }
+    .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; padding: 12px 17px; border: 1px solid rgba(97,244,230,.3); border-radius: 999px; background: #111a25; color: var(--cyan); transition: .3s ease; z-index: 10; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    @media (max-width: 850px) {
+      nav { gap: 16px; } nav a:not(.nav-cta) { display: none; }
+      .hero { grid-template-columns: 1fr; padding-top: 58px; gap: 10px; }
+      .arena-scene { min-height: 400px; } .stadium { width: min(90%, 460px); }
+      .card-top { right: 0; } .card-bottom { left: 0; }
+      .features { grid-template-columns: 1fr; } .section-head, .cta-panel { align-items: flex-start; flex-direction: column; }
+    }
+    @media (max-width: 480px) {
+      .wrap { width: min(100% - 30px, 1160px); }
+      header { height: 72px; } .brand { font-size: .98rem; }
+      .nav-cta { padding: 10px 13px; font-size: .8rem; }
+      .hero { min-height: auto; } .stats { gap: 20px; }
+      .arena-scene { min-height: 320px; } .float-card { padding: 10px; } .card-top { top: 3%; } .card-bottom { bottom: 2%; }
+      footer { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <header class="wrap">
+    <a class="brand" href="#" aria-label="Vargas Arena home">
+      <span class="brand-mark">V</span><span>VARGAS <span style="color:var(--cyan)">ARENA</span></span>
+    </a>
+    <nav aria-label="Main navigation">
+      <a href="#experience">Experience</a>
+      <a href="#features">Features</a>
+      <a class="nav-cta" href="Estadio%20Metaverso.html">Enter the Metaverse ↗</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero wrap">
+      <div>
+        <div class="eyebrow"><span class="pulse"></span> The future of live sports</div>
+        <h1>More than a stadium.<br><span>A new dimension.</span></h1>
+        <p class="lead">Welcome to Vargas Arena — where live sports, immersive technology, and next-level fan experiences come together. Feel the energy. Explore beyond the stands.</p>
+        <div class="actions">
+          <a class="primary" href="Estadio%20Metaverso.html">Explore the Metaverse <span aria-hidden="true">↗</span></a>
+          <a class="secondary" href="#experience">Discover the experience ↓</a>
+        </div>
+        <div class="stats" aria-label="Arena highlights">
+          <div class="stat"><strong>360°</strong><span>Immersive views</span></div>
+          <div class="stat"><strong>1 World</strong><span>Connected fans</span></div>
+          <div class="stat"><strong>∞</strong><span>Ways to experience</span></div>
+        </div>
+      </div>
+
+      <div class="arena-scene" aria-label="Stylized futuristic stadium illustration">
+        <div class="orb"></div>
+        <div class="stadium">
+          <div class="beam one"></div><div class="beam two"></div><div class="field"></div>
+        </div>
+        <div class="float-card card-top">
+          <div class="float-icon">◉</div>
+          <div><small>ARENA STATUS</small><strong><span style="color:var(--cyan)">●</span> Experience Live</strong></div>
+        </div>
+        <div class="float-card card-bottom">
+          <div class="float-icon">✧</div>
+          <div><small>YOUR NEXT LEVEL</small><strong>Enter a new reality</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="experience" class="wrap">
+      <div class="section-head">
+        <div><div class="kicker">The experience</div><h2>Feel the game differently.</h2></div>
+        <p>Step into a connected arena designed to bring fans closer to every moment, wherever they are.</p>
+      </div>
+      <div id="features" class="features">
+        <article class="feature">
+          <div class="feature-icon">⌁</div>
+          <h3>Immersive by design</h3>
+          <p>Discover a digital-first stadium atmosphere with striking visuals and a world built to explore.</p>
+        </article>
+        <article class="feature">
+          <div class="feature-icon">◎</div>
+          <h3>One connected crowd</h3>
+          <p>Share the excitement with a global community and make every match feel like a shared moment.</p>
+        </article>
+        <article class="feature">
+          <div class="feature-icon">✦</div>
+          <h3>Beyond the stands</h3>
+          <p>Go beyond the traditional stadium and step into new spaces, experiences, and possibilities.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="wrap">
+      <div class="cta-panel">
+        <div>
+          <div class="kicker">Your arena awaits</div>
+          <h2>Ready to step inside?</h2>
+          <p>Leave the ordinary behind. Explore the Vargas Arena metaverse and discover what the future of fandom can feel like.</p>
+        </div>
+        <a class="primary" href="Estadio%20Metaverso.html">Enter Vargas Arena ↗</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <a class="brand" href="#"><span class="brand-mark">V</span><span>VARGAS ARENA</span></a>
+    <span>© <span id="year"></span> Vargas Arena. The future is yours to explore.</span>
+    <a href="Estadio%20Metaverso.html">Estadio Metaverso ↗</a>
+  </footer>
+  <div class="toast" id="toast" role="status" aria-live="polite">Welcome to Vargas Arena.</div>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    // Small interaction for the arena status badge.
+    const statusCard = document.querySelector('.card-top');
+    const toast = document.getElementById('toast');
+    statusCard.addEventListener('click', () => {
+      toast.classList.add('show');
+      window.setTimeout(() => toast.classList.remove('show'), 2200);
+    });
+    statusCard.style.cursor = 'pointer';
+    statusCard.setAttribute('role', 'button');
+    statusCard.setAttribute('tabindex', '0');
+    statusCard.setAttribute('aria-label', 'Show arena status');
+    statusCard.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        statusCard.click();
+      }
+    });
+  </script>
+</body>
+</html>
