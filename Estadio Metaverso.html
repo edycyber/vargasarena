@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Estadio Metaverso</title>
+<style>
+  :root { --bg:#05060f; --fg:#f2f2f7; --panel:rgba(20,22,40,.75); box-sizing:border-box; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#05060f; --fg:#f2f2f7; --panel:rgba(20,22,40,.75); } }
+  html, body { margin:0; height:100%; overflow:hidden; background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  #gl, #css { position:absolute; inset:0; }
+  #gl canvas { display:block; }
+  #ui { position:absolute; z-index:10; left:0; right:0; top:0; padding:calc(env(safe-area-inset-top,0px) + 12px) 12px 0; display:flex; gap:8px; flex-wrap:wrap; pointer-events:none; }
+  #ui button { pointer-events:auto; background:var(--panel); color:var(--fg); border:1px solid rgba(255,255,255,.2); border-radius:999px; padding:8px 14px; font-size:14px; cursor:pointer; backdrop-filter:blur(6px); }
+  #ui button:hover { border-color:#fff; }
+  #hint { position:absolute; z-index:10; bottom:calc(env(safe-area-inset-bottom,0px) + 10px); left:50%; transform:translateX(-50%); font-size:12px; opacity:.7; background:var(--panel); padding:6px 12px; border-radius:999px; pointer-events:none; white-space:nowrap; }
+  #css canvas, #css > div { touch-action:none; }
+  #joy { position:absolute; z-index:10; left:calc(env(safe-area-inset-left,0px) + 20px); bottom:calc(env(safe-area-inset-bottom,0px) + 56px); width:110px; height:110px; border-radius:50%; background:var(--panel); border:1px solid rgba(255,255,255,.25); display:none; touch-action:none; }
+  #joy i { position:absolute; left:35px; top:35px; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.55); pointer-events:none; }
+</style>
+</head>
+<body>
+<div id="gl"></div>
+<div id="css"></div>
+<div id="ui">
+  <button id="bLuces">💡 Lights: ON</button>
+  <button id="bShow">🎆 Show mode: ON</button>
+  <button id="bVideo">🎬 Interact with video</button>
+  <button id="bFan">🚶 Fan mode</button>
+  <button id="bCam">🎥 Change view</button>
+</div>
+<div id="hint">Drag to look around · scroll or pinch to zoom</div>
+<div id="joy"><i></i></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/renderers/CSS3DRenderer.js"></script>
+<script>
+(function () {
+  const W = () => innerWidth, H = () => innerHeight;
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x05060f);
+  scene.fog = new THREE.FogExp2(0x05060f, 0.0028);
+
+  const camera = new THREE.PerspectiveCamera(55, W() / H(), 0.5, 1200);
+  camera.position.set(0, 38, 118);
+
+  const gl = new THREE.WebGLRenderer({ antialias: true });
+  gl.setPixelRatio(Math.min(devicePixelRatio, 2));
+  gl.setSize(W(), H());
+  document.getElementById('gl').appendChild(gl.domElement);
+
+  const css = new THREE.CSS3DRenderer();
+  css.setSize(W(), H());
+  const cssEl = document.getElementById('css');
+  cssEl.appendChild(css.domElement);
+
+  const controls = new THREE.OrbitControls(camera, css.domElement);
+  controls.target.set(0, 14, 0);
+  controls.enableDamping = true;
+  controls.maxPolarAngle = Math.PI * 0.52;
+  controls.minDistance = 20; controls.maxDistance = 220;
+
+  // ---------- Luz ambiente ----------
+  const amb = new THREE.AmbientLight(0x4a4f80, 0.55);
+  scene.add(amb);
+  const hemi = new THREE.HemisphereLight(0x6670ff, 0x101020, 0.35);
+  scene.add(hemi);
+
+  // ---------- Cesped / pista ----------
+  const grass = new THREE.Mesh(new THREE.CircleGeometry(46, 64), new THREE.MeshLambertMaterial({ color: 0x1c6b34 }));
+  grass.rotation.x = -Math.PI / 2; scene.add(grass);
+  const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .6 });
+  [[10, 10.6], [43.5, 44.5]].forEach(([a, b]) => {
+    const r = new THREE.Mesh(new THREE.RingGeometry(a, b, 64), lineMat);
+    r.rotation.x = -Math.PI / 2; r.position.y = 0.05; scene.add(r);
+  });
+  const outer = new THREE.Mesh(new THREE.RingGeometry(46, 160, 64), new THREE.MeshLambertMaterial({ color: 0x0b0c18 }));
+  outer.rotation.x = -Math.PI / 2; outer.position.y = -0.1; scene.add(outer);
+
+  // ---------- Gradas ----------
+  const steps = 12, stepH = 2.2, stepD = 3, r0 = 50;
+  const standMats = [new THREE.MeshLambertMaterial({ color: 0x2b2f6b }), new THREE.MeshLambertMaterial({ color: 0x3a1f5e })];
+  for (let i = 0; i < steps; i++) {
+    const r = r0 + i * stepD;
+    const wall = new THREE.Mesh(new THREE.CylinderGeometry(r, r, stepH, 96, 1, true), standMats[i % 2]);
+    wall.material.side = THREE.DoubleSide;
+    wall.position.y = i * stepH + stepH / 2; scene.add(wall);
+    const floor = new THREE.Mesh(new THREE.RingGeometry(r, r + stepD, 96), new THREE.MeshLambertMaterial({ color: 0x1a1c3a, side: THREE.DoubleSide }));
+    floor.rotation.x = -Math.PI / 2; floor.position.y = (i + 1) * stepH; scene.add(floor);
+  }
+  const topR = r0 + steps * stepD;
+  // muro exterior
+  const shell = new THREE.Mesh(new THREE.CylinderGeometry(topR, topR + 6, steps * stepH + 6, 96, 1, true, 0.09, Math.PI * 2 - 0.18), new THREE.MeshLambertMaterial({ color: 0x1d2046, side: THREE.DoubleSide }));
+  shell.position.y = (steps * stepH + 6) / 2; scene.add(shell);
+
+  // ---------- Publico (instanciado) ----------
+  const N = 2600;
+  const crowd = new THREE.InstancedMesh(new THREE.SphereGeometry(0.55, 6, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }), N);
+  const m = new THREE.Matrix4(), col = new THREE.Color();
+  const crowdData = [];
+  for (let i = 0; i < N; i++) {
+    const s = Math.floor(Math.random() * steps), a = Math.random() * Math.PI * 2, r = r0 + s * stepD + 0.8 + Math.random() * 1.6;
+    const y = (s + 1) * stepH + 0.7;
+    m.setPosition(Math.cos(a) * r, y, Math.sin(a) * r);
+    crowd.setMatrixAt(i, m);
+    col.setHSL(Math.random(), 0.5, 0.35 + Math.random() * 0.2);
+    crowd.setColorAt(i, col);
+    crowdData.push({ y, a, r });
+  }
+  scene.add(crowd);
+
+  // ---------- Techo y torres de luz ----------
+  const roofY = steps * stepH + 12;
+  const roof = new THREE.Mesh(new THREE.TorusGeometry(topR - 4, 1.4, 12, 96), new THREE.MeshLambertMaterial({ color: 0x8890c0 }));
+  roof.rotation.x = Math.PI / 2; roof.position.y = roofY; scene.add(roof);
+  const roof2 = new THREE.Mesh(new THREE.RingGeometry(topR - 22, topR - 4, 96), new THREE.MeshLambertMaterial({ color: 0x1d1f3d, side: THREE.DoubleSide }));
+  roof2.rotation.x = Math.PI / 2; roof2.position.y = roofY; scene.add(roof2);
+  const pillarGeo = new THREE.CylinderGeometry(0.8, 1, roofY, 8);
+  for (let i = 0; i < 16; i++) {
+    const a = i / 16 * Math.PI * 2;
+    const p = new THREE.Mesh(pillarGeo, new THREE.MeshLambertMaterial({ color: 0x6a70a0 }));
+    p.position.set(Math.cos(a) * (topR - 4), roofY / 2, Math.sin(a) * (topR - 4)); scene.add(p);
+  }
+
+  // ---------- Escenario ----------
+  const stage = new THREE.Mesh(new THREE.BoxGeometry(46, 2, 22), new THREE.MeshStandardMaterial({ color: 0x15162a, metalness: .6, roughness: .35 }));
+  stage.position.set(0, 1, 0); scene.add(stage);
+  const stageEdge = new THREE.Mesh(new THREE.BoxGeometry(46.4, .25, 22.4), new THREE.MeshBasicMaterial({ color: 0xff2fd0 }));
+  stageEdge.position.set(0, 2.05, 0); scene.add(stageEdge);
+  const truss = new THREE.Mesh(new THREE.BoxGeometry(60, 1, 1), new THREE.MeshLambertMaterial({ color: 0x9aa0d0 }));
+  truss.position.set(0, 36, 0); scene.add(truss);
+  [-30, 30].forEach(x => {
+    const t = new THREE.Mesh(new THREE.BoxGeometry(1, 36, 1), new THREE.MeshLambertMaterial({ color: 0x9aa0d0 }));
+    t.position.set(x, 18, 0); scene.add(t);
+  });
+
+  // ---------- Pantalla (iframe YouTube en 3D) ----------
+  const holder = document.createElement('div');
+  holder.style.cssText = 'width:560px;height:315px;background:#000;box-shadow:0 0 60px 10px rgba(255,60,220,.55);';
+  holder.innerHTML = '<iframe width="560" height="315" src="https://www.youtube.com/embed/gFVe5yDSGNg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>';
+  const frame = holder.firstChild; frame.style.pointerEvents = 'none';
+  const screen3d = new THREE.CSS3DObject(holder);
+  screen3d.scale.setScalar(0.09);
+  screen3d.position.set(0, 22, 0);
+  scene.add(screen3d);
+
+  // ---------- Reflectores ----------
+  const spots = [], NS = 10;
+  const beamGeo = new THREE.ConeGeometry(7, 90, 24, 1, true);
+  beamGeo.translate(0, -45, 0); beamGeo.rotateX(-Math.PI / 2); // apice en origen, apunta a +z
+  for (let i = 0; i < NS; i++) {
+    const a = i / NS * Math.PI * 2, R = topR - 10;
+    const pivot = new THREE.Group();
+    pivot.position.set(Math.cos(a) * R, roofY - 2, Math.sin(a) * R);
+    const light = new THREE.SpotLight(0xffffff, 2.2, 260, 0.32, 0.5, 1.2);
+    pivot.add(light);
+    const target = new THREE.Object3D(); scene.add(target); light.target = target;
+    const beam = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    pivot.add(beam);
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(1.4, 10, 10), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    pivot.add(bulb);
+    scene.add(pivot);
+    spots.push({ pivot, light, target, beam, bulb, phase: i * 0.9 });
+  }
+  // luces del escenario
+  const stageLights = [0xff2fd0, 0x2fd0ff, 0xffd02f].map((c, i) => {
+    const l = new THREE.PointLight(c, 1.6, 90); l.position.set((i - 1) * 22, 8, 10); scene.add(l); return l;
+  });
+  // bombillas del anillo del techo
+  const ring = [];
+  for (let i = 0; i < 64; i++) {
+    const a = i / 64 * Math.PI * 2;
+    const b = new THREE.Mesh(new THREE.SphereGeometry(.7, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    b.position.set(Math.cos(a) * (topR - 4), roofY + 1.6, Math.sin(a) * (topR - 4)); scene.add(b); ring.push(b);
+  }
+
+  // ---------- Estrellas ----------
+  const sp = new Float32Array(900 * 3);
+  for (let i = 0; i < 900; i++) {
+    const a = Math.random() * Math.PI * 2, e = Math.random() * 1.2 + 0.1, r = 600;
+    sp[i * 3] = Math.cos(a) * Math.cos(e) * r; sp[i * 3 + 1] = Math.sin(e) * r * .8; sp[i * 3 + 2] = Math.sin(a) * Math.cos(e) * r;
+  }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+  scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, fog: false })));
+
+  // ---------- Estado / botones ----------
+  let lucesOn = true, showOn = true, camMode = 0;
+  const $ = id => document.getElementById(id);
+  $('bLuces').onclick = e => { lucesOn = !lucesOn; e.target.textContent = '💡 Lights: ' + (lucesOn ? 'ON' : 'OFF'); };
+  $('bShow').onclick = e => { showOn = !showOn; e.target.textContent = '🎆 Show mode: ' + (showOn ? 'ON' : 'OFF'); };
+  $('bVideo').onclick = e => {
+    const on = frame.style.pointerEvents === 'none';
+    frame.style.pointerEvents = on ? 'auto' : 'none';
+    e.target.textContent = on ? '🖱️ Back to camera controls' : '🎬 Interact with video';
+  };
+  const views = [[0, 38, 118], [85, 55, 85], [0, 90, 20], [-60, 14, 70]];
+  $('bCam').onclick = () => { if (fan) { spawn((si + 1) % spawns.length); return; } camMode = (camMode + 1) % views.length; const v = views[camMode]; camera.position.set(v[0], v[1], v[2]); };
+
+  addEventListener('resize', () => {
+    camera.aspect = W() / H(); camera.updateProjectionMatrix();
+    gl.setSize(W(), H()); css.setSize(W(), H());
+  });
+
+  // ---------- Exterior ----------
+  const RAMP_END = 130, RH = steps * stepH;
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(700, 64), new THREE.MeshLambertMaterial({ color: 0x0a2414 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -0.2; scene.add(ground);
+  const plaza = new THREE.Mesh(new THREE.RingGeometry(topR + 6, 160, 96), new THREE.MeshLambertMaterial({ color: 0x1b1d33 }));
+  plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.02; scene.add(plaza);
+  const path = new THREE.Mesh(new THREE.PlaneGeometry(16, 150), new THREE.MeshLambertMaterial({ color: 0x2a2d52 }));
+  path.rotation.x = -Math.PI / 2; path.position.set(0, 0.04, 205); scene.add(path);
+
+  function sign(text, w, h, fs, c1, c2) {
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const g = cv.getContext('2d');
+    const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, c1); gr.addColorStop(1, c2);
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#fff'; g.lineWidth = h * 0.04; g.strokeRect(h * 0.05, h * 0.05, w - h * 0.1, h * 0.9);
+    g.font = '800 ' + fs + 'px system-ui, Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.shadowColor = '#fff'; g.shadowBlur = fs * 0.25; g.fillStyle = '#fff';
+    g.fillText(text, w / 2, h / 2 + fs * 0.04, w * 0.88);
+    const t = new THREE.CanvasTexture(cv); t.anisotropy = 4; return t;
+  }
+  const steel = new THREE.MeshStandardMaterial({ color: 0xb4bae6, metalness: .3, roughness: .45 });
+
+  // Pancarta de bienvenida
+  const bn = new THREE.Group(); bn.position.set(0, 50, 100); scene.add(bn);
+  const bMat = new THREE.MeshBasicMaterial({ map: sign('Welcome to Vargas Arena', 2048, 384, 150, '#ff2fd0', '#2fa0ff') });
+  const bFront = new THREE.Mesh(new THREE.PlaneGeometry(76, 14.25), bMat);
+  const bBack = bFront.clone(); bBack.rotation.y = Math.PI; bBack.position.z = -0.1; bFront.position.z = 0.1;
+  bn.add(bFront, bBack);
+  [-40, 40].forEach(x => { const mast = new THREE.Mesh(new THREE.CylinderGeometry(.6, .9, 60, 8), steel); mast.position.set(x, 30, 100); scene.add(mast); });
+
+  // Portico de entrada
+  [-10, 10].forEach(x => { const p = new THREE.Mesh(new THREE.BoxGeometry(3, 38, 3), steel); p.position.set(x, 19, 92); scene.add(p); });
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(23, 4, 4), steel); lintel.position.set(0, 36, 92); scene.add(lintel);
+  const gs = new THREE.Mesh(new THREE.PlaneGeometry(18, 3), new THREE.MeshBasicMaterial({ map: sign('ENTRANCE · GATE A', 1024, 170, 100, '#ff2fd0', '#2fd0ff') }));
+  gs.position.set(0, 36, 94.1); scene.add(gs);
+
+  // Rampa de acceso
+  const rampLen = Math.hypot(RAMP_END - topR, RH), rampAng = Math.atan2(RH, RAMP_END - topR);
+  const rc = document.createElement('canvas'); rc.width = rc.height = 32;
+  const rg = rc.getContext('2d'); rg.fillStyle = '#23264a'; rg.fillRect(0, 0, 32, 32); rg.fillStyle = '#6a70c0'; rg.fillRect(0, 0, 32, 3);
+  const rtex = new THREE.CanvasTexture(rc); rtex.wrapS = rtex.wrapT = THREE.RepeatWrapping; rtex.repeat.set(1, rampLen / 1.2);
+  const ramp = new THREE.Mesh(new THREE.BoxGeometry(15, 1.2, rampLen), new THREE.MeshBasicMaterial({ map: rtex }));
+  ramp.position.set(0, RH / 2 - 0.6, (RAMP_END + topR) / 2); ramp.rotation.x = rampAng; scene.add(ramp);
+  const railMat = new THREE.MeshBasicMaterial({ color: 0x2fd0ff });
+  [-7.25, 7.25].forEach(x => {
+    const rl = new THREE.Mesh(new THREE.BoxGeometry(.5, 1.4, rampLen), railMat);
+    rl.position.set(x, RH / 2 + 0.2, (RAMP_END + topR) / 2); rl.rotation.x = rampAng; scene.add(rl);
+  });
+  [92, 104, 116, 126].forEach(z => {
+    const h = RH * (RAMP_END - z) / (RAMP_END - topR) - 0.8;
+    [-6, 6].forEach(x => { const c = new THREE.Mesh(new THREE.BoxGeometry(1.6, h, 1.6), steel); c.position.set(x, h / 2, z); scene.add(c); });
+  });
+
+  // Fachada: costillas y arcos de neon
+  const ribMat = new THREE.MeshLambertMaterial({ color: 0x34386c });
+  const ribGeo = new THREE.BoxGeometry(1, 33, 1.3);
+  for (let i = 0; i < 56; i++) {
+    const a = i / 56 * Math.PI * 2; if (Math.min(a, Math.PI * 2 - a) < 0.14) continue;
+    const pv = new THREE.Group(); pv.rotation.y = a;
+    const rb = new THREE.Mesh(ribGeo, ribMat); rb.position.set(0, 16.2, 89.6); rb.rotation.x = -0.183;
+    pv.add(rb); scene.add(pv);
+  }
+  const neonMats = [];
+  [7, 15, 23].forEach(y => {
+    const R = 92 - 6 * y / 32.4 + 0.5, g = 0.14;
+    const mat = new THREE.MeshBasicMaterial({ color: 0xff2fd0 }); neonMats.push(mat);
+    const arc = new THREE.Mesh(new THREE.TorusGeometry(R, 0.28, 8, 160, Math.PI * 2 - 2 * g), mat);
+    arc.rotation.x = -Math.PI / 2; arc.position.y = y;
+    const wr = new THREE.Group(); wr.rotation.y = g - Math.PI / 2; wr.add(arc); scene.add(wr);
+  });
+
+  // Farolas
+  const lampMat = new THREE.MeshBasicMaterial({ color: 0x9fe8ff });
+  const poleGeo = new THREE.CylinderGeometry(.25, .35, 9, 6), bulbGeo = new THREE.SphereGeometry(.9, 8, 8);
+  function lamp(x, z) {
+    const p = new THREE.Mesh(poleGeo, steel); p.position.set(x, 4.5, z);
+    const b = new THREE.Mesh(bulbGeo, lampMat); b.position.set(x, 9.4, z); scene.add(p, b);
+  }
+  for (let z = 145; z <= 270; z += 25) { lamp(-11, z); lamp(11, z); }
+  for (let i = 0; i < 20; i++) { const a = i / 20 * Math.PI * 2; if (Math.min(a, Math.PI * 2 - a) < .35) continue; lamp(Math.sin(a) * 112, Math.cos(a) * 112); }
+
+  // Arboles
+  const NT = 90;
+  const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(.5, .7, 3, 6), new THREE.MeshLambertMaterial({ color: 0x4a2f1b }), NT);
+  const leaves = new THREE.InstancedMesh(new THREE.ConeGeometry(3.2, 9, 8), new THREE.MeshLambertMaterial({ color: 0x14582c }), NT);
+  for (let i = 0; i < NT;) {
+    const a = Math.random() * Math.PI * 2, r = 165 + Math.random() * 140, x = Math.sin(a) * r, z = Math.cos(a) * r;
+    if (Math.abs(x) < 22 && z > 0) continue;
+    m.makeTranslation(x, 1.5, z); trunks.setMatrixAt(i, m);
+    m.makeTranslation(x, 7.5, z); leaves.setMatrixAt(i, m); i++;
+  }
+  scene.add(trunks, leaves);
+
+  function extTick(t) {
+    neonMats.forEach((mm, k) => mm.color.setHSL((t * .12 + k * .15) % 1, 1, .6));
+    railMat.color.setHSL((t * .1) % 1, 1, .6);
+    bn.rotation.x = Math.sin(t * 1.3) * 0.02;
+    lampMat.color.setHSL(.5, .8, lucesOn ? .8 : .3);
+    const inside = Math.hypot(camera.position.x, camera.position.z) < topR;
+    if (extTick.shown !== inside) { extTick.shown = inside; screen3d.visible = inside; }
+  }
+
+  // ---------- Modo fan (primera persona) ----------
+  let fan = false, yaw = 0, pitch = 0, curH = 0, lastT = 0, si = 0, drag = null;
+  const keys = {}, joy = { x: 0, y: 0 };
+  const spawns = [[0, 40, 0, .3], [0, 62, 0, .1], [0, 78, 0, -.05], [0, 8, Math.PI, 0], [0, 190, 0, .22]];
+  const hintEl = $('hint'), joyEl = $('joy'), knob = joyEl.firstElementChild;
+  const coarse = matchMedia('(pointer:coarse)').matches;
+  function groundH(x, z) {
+    if (Math.abs(x) < 23 && Math.abs(z) < 11) return 2;
+    const r = Math.hypot(x, z);
+    if (Math.abs(x) < 7.5 && z > topR && z < RAMP_END) return RH * (RAMP_END - z) / (RAMP_END - topR);
+    if (r >= topR || r < r0) return 0;
+    return (Math.min(Math.floor((r - r0) / stepD), steps - 1) + 1) * stepH;
+  }
+  function spawn(i) {
+    si = i; const s = spawns[i];
+    camera.position.set(s[0], 0, s[1]); yaw = s[2]; pitch = s[3];
+    curH = groundH(s[0], s[1]);
+    camera.position.y = curH + 1.7;
+    camera.rotation.set(pitch, yaw, 0);
+  }
+  function setFan(on) {
+    fan = on; controls.enabled = !on;
+    $('bFan').textContent = on ? '🛰️ Aerial view' : '🚶 Fan mode';
+    $('bCam').textContent = on ? '📍 Change spot' : '🎥 Change view';
+    joyEl.style.display = on && coarse ? 'block' : 'none';
+    hintEl.textContent = on ? 'Drag to look · WASD / ZQSD or arrow keys to walk · Shift to run' : 'Drag to look around · scroll or pinch to zoom';
+    if (on) { camera.rotation.order = 'YXZ'; spawn(4); }
+    else { const v = views[camMode]; camera.position.set(v[0], v[1], v[2]); controls.target.set(0, 14, 0); controls.update(); }
+  }
+  $('bFan').onclick = () => setFan(!fan);
+  addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
+  addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+  css.domElement.style.touchAction = 'none';
+  css.domElement.addEventListener('pointerdown', e => { if (fan) drag = { id: e.pointerId, x: e.clientX, y: e.clientY }; });
+  addEventListener('pointermove', e => {
+    if (!fan || !drag || e.pointerId !== drag.id) return;
+    yaw += (e.clientX - drag.x) * 0.0045;
+    pitch = Math.max(-1.2, Math.min(1.2, pitch + (e.clientY - drag.y) * 0.0045));
+    drag.x = e.clientX; drag.y = e.clientY;
+  });
+  addEventListener('pointerup', e => { if (drag && e.pointerId === drag.id) drag = null; });
+  // joystick tactil
+  let jid = null;
+  function jmove(e) {
+    const b = joyEl.getBoundingClientRect();
+    let dx = (e.clientX - (b.left + 55)) / 45, dy = (e.clientY - (b.top + 55)) / 45;
+    const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; }
+    joy.x = dx; joy.y = dy; knob.style.transform = 'translate(' + dx * 35 + 'px,' + dy * 35 + 'px)';
+  }
+  joyEl.addEventListener('pointerdown', e => { jid = e.pointerId; joyEl.setPointerCapture(jid); jmove(e); });
+  joyEl.addEventListener('pointermove', e => { if (e.pointerId === jid) jmove(e); });
+  const jend = e => { if (e.pointerId === jid) { jid = null; joy.x = joy.y = 0; knob.style.transform = ''; } };
+  joyEl.addEventListener('pointerup', jend); joyEl.addEventListener('pointercancel', jend);
+  function walk(t) {
+    const dt = Math.min(0.05, t - lastT); lastT = t;
+    let ix = joy.x, iz = joy.y; // iz>0 = atras
+    if (keys['w'] || keys['z'] || keys['arrowup']) iz -= 1;
+    if (keys['s'] || keys['arrowdown']) iz += 1;
+    if (keys['a'] || keys['q'] || keys['arrowleft']) ix -= 1;
+    if (keys['d'] || keys['arrowright']) ix += 1;
+    const l = Math.hypot(ix, iz); if (l > 1) { ix /= l; iz /= l; }
+    const sp = (keys['shift'] ? 15 : 7) * dt;
+    const s = Math.sin(yaw), c = Math.cos(yaw);
+    let x = camera.position.x + (ix * c + iz * s) * sp;
+    let z = camera.position.z + (-ix * s + iz * c) * sp;
+    const px = camera.position.x, pz = camera.position.z;
+    const inR = (a, b) => Math.abs(a) < 7.5 && b > topR - 1 && b < RAMP_END;
+    if (inR(x, z)) {
+      if (!inR(px, pz) && !(pz >= RAMP_END || (pz <= topR - 1 && Math.abs(x) < 6.5))) { x = px; z = pz; }
+      else if (Math.abs(x) > 6.5) x = Math.sign(x) * 6.5;
+    } else {
+      const nr = Math.hypot(x, z);
+      if (Math.hypot(px, pz) < topR || (inR(px, pz) && z < topR)) { const mx = topR - 1; if (nr > mx) { x *= mx / nr; z *= mx / nr; } }
+      else { const mn = topR + 7, mo = 230; if (nr < mn) { x *= mn / nr; z *= mn / nr; } else if (nr > mo) { x *= mo / nr; z *= mo / nr; } }
+    }
+    camera.position.x = x; camera.position.z = z;
+    curH += (groundH(x, z) - curH) * Math.min(1, dt * 10);
+    camera.position.y = curH + 1.7 + (l > 0.1 ? Math.sin(t * 9) * 0.05 : 0);
+    camera.rotation.set(pitch, yaw, 0);
+  }
+
+  // ---------- Animacion ----------
+  setFan(true); // el visitante siempre empieza fuera, en la plaza
+  const clock = new THREE.Clock();
+  const tmp = new THREE.Color();
+  function loop() {
+    requestAnimationFrame(loop);
+    const t = clock.getElapsedTime();
+    const k = lucesOn ? 1 : 0;
+
+    amb.intensity = lucesOn ? 0.55 : 0.18;
+    spots.forEach((s, i) => {
+      const sw = showOn ? 1 : 0.15;
+      const tx = Math.sin(t * 0.8 + s.phase) * 30 * sw + Math.cos(t * .3 + i) * 8;
+      const tz = Math.cos(t * 0.6 + s.phase * 1.3) * 22 * sw;
+      s.target.position.set(tx, 4, tz);
+      s.pivot.lookAt(tx, 4, tz);
+      tmp.setHSL(((showOn ? t * 0.08 : 0.6) + i / NS) % 1, 1, 0.55);
+      s.light.color.copy(tmp); s.beam.material.color.copy(tmp); s.bulb.material.color.copy(tmp);
+      s.light.intensity = 2.4 * k;
+      s.beam.visible = s.light.visible = !!k;
+      s.beam.material.opacity = 0.10 + 0.05 * Math.sin(t * 3 + i);
+    });
+    stageLights.forEach((l, i) => {
+      l.intensity = k * (1.2 + (showOn ? Math.abs(Math.sin(t * 4 + i * 2)) * 1.8 : .5));
+      l.color.setHSL((t * 0.15 + i / 3) % 1, 1, .55);
+    });
+    stageEdge.material.color.setHSL((t * 0.2) % 1, 1, .6);
+    ring.forEach((b, i) => {
+      const on = lucesOn && (showOn ? ((i + Math.floor(t * 8)) % 4 < 2) : true);
+      b.material.color.setHSL((i / 64 + t * .05) % 1, 1, on ? .65 : .08);
+    });
+    // publico: movimiento y celulares encendidos
+    if (showOn) {
+      for (let i = 0; i < N; i += 1) {
+        const c = crowdData[i];
+        m.setPosition(Math.cos(c.a) * c.r, c.y + Math.max(0, Math.sin(t * 5 + i)) * 0.5, Math.sin(c.a) * c.r);
+        crowd.setMatrixAt(i, m);
+      }
+      crowd.instanceMatrix.needsUpdate = true;
+    }
+
+    // la pantalla siempre mira a la camara (solo eje Y)
+    screen3d.rotation.y = Math.atan2(camera.position.x, camera.position.z);
+
+    extTick(t);
+    if (fan) walk(t); else controls.update();
+    gl.render(scene, camera);
+    css.render(scene, camera);
+  }
+  loop();
+})();
+</script>
+</body>
+</html>
